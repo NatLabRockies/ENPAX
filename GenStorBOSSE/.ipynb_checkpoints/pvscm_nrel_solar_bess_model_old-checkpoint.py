@@ -31,7 +31,6 @@ DEFAULTS = {
     "ESSWeight": 9.4,              # kg/kWh_cap
     "Battery45X": 10,              # $/kWh credit
     "45XPassthrough": 0.5,         # %/100 share
-    "ESSMarketPrice": 228,         # $/kWh-cap
 
     # 2. Bi-directional Inverter
     "BidirectionalInverter": 100.0, # $/kWac
@@ -92,13 +91,10 @@ DEFAULTS = {
 
 class GenStorBOSSEModel:
     def __init__(self, user_config: dict = None):
-        # Ensures we start with DEFAULTS and override with user_config if it's a dict
-        if user_config and not isinstance(user_config, dict):
-            raise ValueError("user_config must be a dictionary.")
-    
+        # This line does exactly what you asked: 
+        # It takes DEFAULTS and overwrites only the keys found in user_config.
         self.config = {**DEFAULTS, **(user_config or {})}
-    
-        # Pre-calculate common factors
+        
         cfg = self.config
         self.dur_ilr = cfg["BatteryDuration"] * cfg["ESS_ILR"]
         self.area_per_mwh = cfg["ESSInstallationArea"] / cfg["ESSContainer"] / 1000
@@ -137,17 +133,13 @@ class GenStorBOSSEModel:
 
         with open(full_path, 'r') as f:
             if full_path.suffix == '.json':
-                import json
                 data = json.load(f)
             elif full_path.suffix in ['.yaml', '.yml']:
-                try:
-                    import yaml
-                    data = yaml.safe_load(f)
-                except ImportError:
-                    raise ImportError("PyYAML is required for .yaml files. Install with 'pip install pyyaml'")
+                import yaml
+                data = yaml.safe_load(f)
             else:
-                raise ValueError(f"Extension {full_path.suffix} not supported. Use .json or .yaml")
-    
+                raise ValueError("Unsupported file format. Use .json or .yaml")
+        
         return cls(user_config=data)
 
     @property
@@ -157,7 +149,7 @@ class GenStorBOSSEModel:
                 self.calculate_bi_directional_inverter_cost_per_kwh() + 
                 self.calculate_sbos_cost_per_kwh() + 
                 self.calculate_ebos_cost_per_kwh())
-        
+
     def get_li_ion_cost_breakdown(self):
         cfg = self.config
         cells = cfg["LiIonCells"] * (1 + cfg["GeneralDuty"] + cfg["Tariff301"])
@@ -166,12 +158,12 @@ class GenStorBOSSEModel:
         depr = cfg["DepreciationCost"] * cfg["ESSDepreciation"]
         
         # Profit base includes inverter normalized by duration/ilr
-        p_base = cells + cfg["BatteryPacks"] + cfg["Enclosure"] + (cfg["BidirectionalInverter"]/self.dur_ilr) + labor + elec + depr + cfg["MaintenanceCost"] - (cfg["45XPassthrough"] * cfg["Battery45X"]) + (cfg["ShippingCost"] * cfg["ESSWeight"])
+        p_base = cells + cfg["BatteryPacks"] + cfg["Enclosure"] + (cfg["BidirectionalInverter"]/self.dur_ilr) + labor + elec + depr + cfg["MaintenanceCost"]
         
         res = {
             "li_ion_cells": cells, "battery_packs": cfg["BatteryPacks"], "enclosure": cfg["Enclosure"],
             "labor": labor, "electricity": elec, "depreciation": depr, "maintenance": cfg["MaintenanceCost"],
-            "profit": cfg["ESSMarketPrice"] - p_base, "shipping": cfg["ShippingCost"] * cfg["ESSWeight"],
+            "profit": cfg["ESSProfit"] * p_base, "shipping": cfg["ShippingCost"] * cfg["ESSWeight"],
             "passthrough_credit": -cfg["45XPassthrough"] * cfg["Battery45X"]
         }
         res["total_li_ion_cost_per_kwh"] = sum(res.values())
