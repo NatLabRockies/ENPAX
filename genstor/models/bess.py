@@ -3,6 +3,8 @@ import copy
 import pandas as pd
 from pathlib import Path
 import yaml
+from genstor.base_model import BaseCostModel
+from genstor.outputs import CapexBreakdown
 
 DEFAULTS = {
     # 0. Project Parameters
@@ -31,6 +33,7 @@ DEFAULTS = {
     "ESSWeight": 9.4,              # kg/kWh_cap
     "Battery45X": 10,              # $/kWh credit
     "45XPassthrough": 0.5,         # %/100 share
+    "ESSMarketPrice": 228,         # $/kWh-cap
 
     # 2. Bi-directional Inverter
     "BidirectionalInverter": 100.0, # $/kWac
@@ -89,58 +92,24 @@ DEFAULTS = {
     "DeveloperProfit": 0.05        # %/100
 }
 
-class GenStorBOSSEModel:
-    def __init__(self, user_config: dict = None):
-        # This line does exactly what you asked: 
-        # It takes DEFAULTS and overwrites only the keys found in user_config.
-        self.config = {**DEFAULTS, **(user_config or {})}
+class BESSCostModel(BaseCostModel):
+    def __init__(self, name=None, tech_type=None, params=None, user_config=None):
+        # The runner sends 'params', but your internal logic might use 'user_config'
+        actual_config = params or user_config or {}
         
+        if not isinstance(actual_config, dict):
+            raise ValueError("Config must be a dictionary.")
+
+        self.name = name
+        self.tech_type = tech_type
+        
+        # Ensure your DEFAULTS for BESS are merged here
+        self.config = {**DEFAULTS, **actual_config}
+    
+        # Pre-calculate common factors
         cfg = self.config
         self.dur_ilr = cfg["BatteryDuration"] * cfg["ESS_ILR"]
         self.area_per_mwh = cfg["ESSInstallationArea"] / cfg["ESSContainer"] / 1000
-
-    @classmethod
-    def from_config_file(cls, file_name: str):
-        from pathlib import Path
-        import json
-
-        # 1. Starting point: where model.py lives
-        base_dir = Path(__file__).parent.absolute()
-        
-        # 2. Define potential locations to search
-        search_paths = [
-            base_dir / file_name,                        # Same folder as model.py
-            base_dir / "configs" / file_name,             # In a subfolder called configs
-            base_dir.parent.parent / "configs" / file_name # In the parallel configs folder
-        ]
-
-        full_path = None
-        for p in search_paths:
-            if p.exists():
-                full_path = p
-                break
-        
-        # 3. Final fallback: try the literal string provided
-        if not full_path:
-            full_path = Path(file_name)
-
-        if not full_path.exists():
-            # Provide a very clear error message showing where we looked
-            tried = "\n".join([str(p) for p in search_paths])
-            raise FileNotFoundError(f"Could not find {file_name}. Checked:\n{tried}")
-
-        # ... (rest of your loading logic for JSON/YAML)
-
-        with open(full_path, 'r') as f:
-            if full_path.suffix == '.json':
-                data = json.load(f)
-            elif full_path.suffix in ['.yaml', '.yml']:
-                import yaml
-                data = yaml.safe_load(f)
-            else:
-                raise ValueError("Unsupported file format. Use .json or .yaml")
-        
-        return cls(user_config=data)
 
     @property
     def core_basis(self):
@@ -149,7 +118,7 @@ class GenStorBOSSEModel:
                 self.calculate_bi_directional_inverter_cost_per_kwh() + 
                 self.calculate_sbos_cost_per_kwh() + 
                 self.calculate_ebos_cost_per_kwh())
-
+        
     def get_li_ion_cost_breakdown(self):
         cfg = self.config
         cells = cfg["LiIonCells"] * (1 + cfg["GeneralDuty"] + cfg["Tariff301"])
@@ -158,12 +127,12 @@ class GenStorBOSSEModel:
         depr = cfg["DepreciationCost"] * cfg["ESSDepreciation"]
         
         # Profit base includes inverter normalized by duration/ilr
-        p_base = cells + cfg["BatteryPacks"] + cfg["Enclosure"] + (cfg["BidirectionalInverter"]/self.dur_ilr) + labor + elec + depr + cfg["MaintenanceCost"]
+        p_base = cells + cfg["BatteryPacks"] + cfg["Enclosure"] + (cfg["BidirectionalInverter"]/self.dur_ilr) + labor + elec + depr + cfg["MaintenanceCost"] - (cfg["45XPassthrough"] * cfg["Battery45X"]) + (cfg["ShippingCost"] * cfg["ESSWeight"])
         
         res = {
             "li_ion_cells": cells, "battery_packs": cfg["BatteryPacks"], "enclosure": cfg["Enclosure"],
             "labor": labor, "electricity": elec, "depreciation": depr, "maintenance": cfg["MaintenanceCost"],
-            "profit": cfg["ESSProfit"] * p_base, "shipping": cfg["ShippingCost"] * cfg["ESSWeight"],
+            "profit": cfg["ESSMarketPrice"] - p_base, "shipping": cfg["ShippingCost"] * cfg["ESSWeight"],
             "passthrough_credit": -cfg["45XPassthrough"] * cfg["Battery45X"]
         }
         res["total_li_ion_cost_per_kwh"] = sum(res.values())
@@ -258,3 +227,13 @@ class GenStorBOSSEModel:
             output[name] = {"total": val, "components": {k: v for k, v in sub.items() if not k.startswith("total_")}} if higher_resolution else val
         output["total_project_cost_per_kwh"] = total
         return output
+
+    # ------------------------------------------------------------------
+    # BaseCostModel interface
+    # ------------------------------------------------------------------
+    def run_capex(self) -> CapexBreakdown:
+        breakdown = self.get_cost_breakdown(higher_resolution=True)
+        total = breakdown.pop("total_project_cost_per_kwh")
+        return CapexBreakdown(total=total, unit="$/kWh-cap", line_items=breakdown)
+
+    # run_opex() intentionally not overridden — BESS standalone OPEX TBD

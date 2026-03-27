@@ -1,0 +1,17 @@
+project_name: "Hybrid Solar+BESS and Standalone BESS"
+
+technologies:
+  - name: solar_plus_storage
+    type: solar_bess
+    params:
+      SystemSize: 100000       # kWdc
+      ILR: 1.32
+      StorageDuration: 2.4
+      BatteryDuration: 4
+      IncludeESS: true
+  
+  - name: standalone_battery
+    type: bess
+    params:
+      BatteryCapacity: 60
+      BatteryDuration: 4

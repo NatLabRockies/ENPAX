@@ -3,6 +3,8 @@ import copy
 import pandas as pd
 from pathlib import Path
 import yaml
+from genstor.base_model import BaseCostModel
+from genstor.outputs import CapexBreakdown
 
 DEFAULTS = {
     # 0. System Parameters
@@ -155,11 +157,20 @@ DEFAULTS = {
     "InsuranceRate": 0.0025          
 }
 
-class SolBatBOSSEModel:
-    def __init__(self, user_config: dict = None):
-        if user_config and not isinstance(user_config, dict):
-            raise ValueError("user_config must be a dictionary.")
-        self.config = {**DEFAULTS, **(user_config or {})}
+class SolarBESSCostModel(BaseCostModel):
+    def __init__(self, name=None, tech_type=None, params=None, user_config=None):
+        # Handle the case where the runner passes 'params' instead of 'user_config'
+        actual_config = params or user_config or {}
+        
+        if not isinstance(actual_config, dict):
+            raise ValueError("Config must be a dictionary.")
+            
+        # Store metadata if you want to use it later
+        self.name = name
+        self.tech_type = tech_type
+        
+        # Merge with defaults
+        self.config = {**DEFAULTS, **actual_config}
         
         cfg = self.config
         # kWac ESS / kWdc Solar
@@ -424,3 +435,41 @@ class SolBatBOSSEModel:
             output[name] = {"total": val, "components": {k: v for k, v in sub.items() if not k.startswith("total_")}} if higher_resolution else val
         output["total_project_cost_per_kwh"] = total
         return output
+
+    # ------------------------------------------------------------------
+    # BaseCostModel interface
+    # ------------------------------------------------------------------
+    def run_capex(self) -> CapexBreakdown:
+        breakdown = self.get_cost_breakdown(higher_resolution=True)
+        total = breakdown.pop("total_project_cost_per_kwh")
+        return CapexBreakdown(total=total, unit="$/kWdc", line_items=breakdown)
+
+#    def run_opex(self) -> OpexBreakdown:
+#        """
+#        Wire up the O&M parameters that already exist in DEFAULTS.
+#        Surfaces them as a proper OpexBreakdown for the first time.
+#        """
+#        cfg = self.config
+#        sys_kw = cfg["SystemSize"]
+#
+#        # These rates are already in DEFAULTS — just never surfaced
+#        parts = cfg["PartsLossRate"] * self.run_capex().total * sys_kw
+#        inverter_repl = cfg["InverterLossRate"] * cfg["InverterMarketPrice"] * (sys_kw / cfg["ILR"])
+#        module_repl = cfg["ModuleLossRate"] * cfg["ModuleMarketPrice"] * sys_kw
+#        ess_repl = cfg["ESSLossRate"] * cfg["ESSMarketPrice"] * cfg["StorageDuration"] * sys_kw * int(cfg["IncludeESS"])
+#        land = cfg["PropertyTaxRate"] * cfg["LandArea"] * sys_kw
+#        insurance = cfg["InsuranceRate"] * self.run_capex().total * sys_kw
+
+#        line_items = {
+#            "parts_replacement": parts,
+#            "inverter_replacement": inverter_repl,
+#            "module_replacement": module_repl,
+#            "ess_replacement": ess_repl,
+#            "land_property_tax": land,
+#            "insurance": insurance,
+#        }
+#        return OpexBreakdown(
+#            annual_total=sum(line_items.values()),
+#            unit="$/yr",
+#            line_items=line_items,
+#        )
