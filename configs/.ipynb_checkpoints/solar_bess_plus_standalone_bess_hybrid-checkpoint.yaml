@@ -1,4 +1,0 @@
-BatteryCapacity: 60   # MW
-BatteryDuration: 2     # hours
-InterconnectFixed: 0   # Fixed $
-Interconnect: 0        # Variable $/unit
