@@ -1,0 +1,11 @@
+project_name: "Standalone BESS"
+
+technologies:
+
+  - name: standalone_battery
+    type: bess
+    params:
+      BatteryCapacity: 60
+      BatteryDuration: 4
+      InterconnectFixed: 0   # Fixed $
+      Interconnect: 0     
