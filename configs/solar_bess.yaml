@@ -1,4 +1,4 @@
-project_name: "Standalone Solar"
+project_name: "Solar + BESS"
 
 technologies:
   - name: solar_plus_storage
