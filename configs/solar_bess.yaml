@@ -2,7 +2,7 @@ project_name: "Standalone Solar"
 
 technologies:
   - name: solar_plus_storage
-    type: solar_bess
+    type: solar_bess_2024Q1
     params:
       SystemSize: 100000       # kWdc
       ILR: 1.32

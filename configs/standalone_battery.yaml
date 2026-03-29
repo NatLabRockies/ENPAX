@@ -3,7 +3,7 @@ project_name: "Standalone BESS"
 technologies:
 
   - name: standalone_battery
-    type: bess
+    type: bess_2025
     params:
       BatteryCapacity: 60
       BatteryDuration: 4
