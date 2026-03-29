@@ -4,7 +4,7 @@ import pandas as pd
 from pathlib import Path
 import yaml
 from genstor.base_model import BaseCostModel
-from genstor.outputs import CapexBreakdown
+from genstor.outputs import CapexBreakdown, DesignSummary
 
 DEFAULTS = {
     # 0. Project Parameters
@@ -237,3 +237,15 @@ class BESSCostModel(BaseCostModel):
         return CapexBreakdown(total=total, unit="$/kWh-cap", line_items=breakdown)
 
     # run_opex() intentionally not overridden — BESS standalone OPEX TBD
+
+    def run_design(self) -> DesignSummary:
+        cfg = self.config
+        battery_capacity_mwdc = cfg["BatteryCapacity"]
+        batt_dur = cfg["BatteryDuration"]
+        batt_inv_mwac = battery_capacity_mwdc / cfg["ESS_ILR"]
+
+        return DesignSummary(line_items={
+            "battery_capacity_mwdc":          battery_capacity_mwdc,
+            "storage_duration_h":             batt_dur,
+            "battery_inverter_capacity_mwac": batt_inv_mwac,
+        })

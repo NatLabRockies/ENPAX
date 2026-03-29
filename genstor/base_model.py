@@ -4,7 +4,7 @@ from typing import Optional
 import json
 import yaml
 
-from genstor.outputs import CapexBreakdown, OpexBreakdown, TechResult
+from genstor.outputs import DesignSummary, CapexBreakdown, OpexBreakdown, TechResult
 
 
 class BaseCostModel(ABC):
@@ -88,4 +88,6 @@ class BaseCostModel(ABC):
             tech_type=self.tech_type,
             capex=self.run_capex(),
             opex=self.run_opex(),
+            design=self.run_design(),
+            
         )

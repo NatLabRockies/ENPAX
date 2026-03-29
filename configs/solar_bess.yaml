@@ -1,0 +1,9 @@
+project_name: "Standalone Solar"
+
+technologies:
+  - name: solar_plus_storage
+    type: solar_bess
+    params:
+      SystemSize: 100000       # kWdc
+      ILR: 1.32
+      IncludeESS: True

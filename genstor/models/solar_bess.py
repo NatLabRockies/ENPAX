@@ -4,7 +4,7 @@ import pandas as pd
 from pathlib import Path
 import yaml
 from genstor.base_model import BaseCostModel
-from genstor.outputs import CapexBreakdown
+from genstor.outputs import CapexBreakdown, DesignSummary
 
 DEFAULTS = {
     # 0. System Parameters
@@ -444,6 +444,29 @@ class SolarBESSCostModel(BaseCostModel):
         total = breakdown.pop("total_project_cost_per_kwh")
         return CapexBreakdown(total=total, unit="$/kWdc", line_items=breakdown)
 
+    def run_design(self) -> DesignSummary:
+        cfg = self.config
+        ilr = cfg["ILR"]
+        ess_mult = int(cfg["IncludeESS"])
+        sys_kwdc = cfg["SystemSize"]
+
+        line_items = {
+            "solar_capacity_mwdc":          sys_kwdc / 1000,
+            "solar_inverter_capacity_mwac": (sys_kwdc / ilr) / 1000,
+        }
+
+        if cfg["IncludeESS"]:
+            batt_dur = cfg["BatteryDuration"]
+            stor_dur = cfg["StorageDuration"]
+            battery_capacity_mwdc = (sys_kwdc * stor_dur / batt_dur) / 1000
+            line_items.update({
+                "battery_capacity_mwdc":          battery_capacity_mwdc,
+                "storage_duration_h":             batt_dur,
+                "battery_inverter_capacity_mwac": battery_capacity_mwdc / cfg["ESS_ILR"],
+            })
+
+        return DesignSummary(line_items=line_items)
+        
 #    def run_opex(self) -> OpexBreakdown:
 #        """
 #        Wire up the O&M parameters that already exist in DEFAULTS.

@@ -1,7 +1,7 @@
 project_name: "Hybrid Solar+BESS and Standalone BESS"
 
 technologies:
-  - name: solar_plus_storage
+  - name: solar_plus_storage_plus_standalone_storage
     type: solar_bess
     params:
       SystemSize: 100000       # kWdc

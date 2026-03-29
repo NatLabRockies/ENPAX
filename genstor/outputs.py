@@ -2,6 +2,10 @@ from dataclasses import dataclass, field
 from typing import Optional
 
 @dataclass
+class DesignSummary:
+    line_items: dict[str, float] = field(default_factory=dict)
+
+@dataclass
 class CapexBreakdown:
     total: float
     unit: str                             # e.g. "$/kWh-cap" or "$/kWdc"
@@ -20,6 +24,7 @@ class TechResult:
     tech_type: str
     capex: Optional[CapexBreakdown] = None
     opex: Optional[OpexBreakdown] = None
+    design: Optional[DesignSummary] = None
 
 @dataclass
 class SystemResult:
@@ -58,9 +63,16 @@ class SystemResult:
             for t in self.tech_results if t.opex
         }
 
+    def design_by_tech(self) -> dict[str, dict]:
+        return {
+            t.tech_name: t.design.line_items
+            for t in self.tech_results if t.design
+        }
+
     def summary(self) -> dict:
         return {
             "project": self.project_name,
+            "design_by_tech": self.design_by_tech(),
             "capex_by_tech": self.capex_by_tech(),
             "opex_by_tech": self.opex_by_tech(),
         }
