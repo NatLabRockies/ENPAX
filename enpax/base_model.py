@@ -4,7 +4,7 @@ from typing import Optional
 import json
 import yaml
 
-from genstor.outputs import DesignSummary, CapexBreakdown, OpexBreakdown, TechResult
+from enpax.outputs import DesignSummary, CapexBreakdown, OpexBreakdown, TechResult
 
 
 class BaseCostModel(ABC):

@@ -1,7 +1,7 @@
 [project]
-name = "genstorbosse-nlr"
+name = "enpax"
 version = "0.1.0"
-description = "GenStorBOSSE cost model"
+description = "ENergy Platform — Automated eXpenditures"
 requires-python = ">=3.10"
 
 dependencies = [
@@ -16,6 +16,6 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
 include = [
-    "genstor",
-    "genstor.model"
+    "enpax",
+    "enpax.model"
 ]

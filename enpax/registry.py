@@ -1,5 +1,5 @@
-from genstor.models.bess_2025 import BESS2025CostModel
-from genstor.models.solar_bess_2024Q1 import SolarBESS2024Q1CostModel
+from enpax.models.bess_2025 import BESS2025CostModel
+from enpax.models.solar_bess_2024Q1 import SolarBESS2024Q1CostModel
 
 REGISTRY: dict[str, type] = {
     "bess_2025":       BESS2025CostModel,

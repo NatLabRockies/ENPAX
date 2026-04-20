@@ -50,8 +50,8 @@ from pathlib import Path
 import pandas as pd
 import yaml
 
-from genstor.base_model import BaseCostModel
-from genstor.outputs import CapexBreakdown, DesignSummary
+from enpax.base_model import BaseCostModel
+from enpax.outputs import CapexBreakdown, DesignSummary
 
 # ---------------------------------------------------------------------------
 # Valid system size range (MWdc)

@@ -1,7 +1,7 @@
 import yaml
 from pathlib import Path
-from genstor.registry import REGISTRY
-from genstor.outputs import SystemResult
+from enpax.registry import REGISTRY
+from enpax.outputs import SystemResult
 
 
 class CentralRunner:
