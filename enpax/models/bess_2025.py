@@ -1,12 +1,20 @@
 """
 bess.py — Standalone Battery Energy Storage System (BESS) Cost Model
 
-Based on:
+CAPEX Cost based on:
     Cole, Wesley, Vignesh Ramasamy, and Merve Turan. 2025.
     Cost Projections for Utility-Scale Battery Storage: 2025 Update.
     Golden, CO: National Renewable Energy Laboratory.
     NREL/TP-6A40-93281.
     https://www.nrel.gov/docs/fy25osti/93281.pdf
+
+O&M Cost adapted from on:
+    Modeled Market Price Utility-Scale PV System Cost Model (PVSCM), 2024 Q1
+    U.S. Department of Energy (DOE)
+    Lawrence Berkeley National Laboratory (LBNL)
+    National Laboratory of the Rockies (NLR)
+    Sandia National Laboratory (SNL)
+    Ref: https://www.energy.gov/cmei/systems/solar-photovoltaic-system-cost-benchmarks
 
 Representative system (default configuration):
     Domestically assembled ESS comprised of 80 pad-mounted lithium-ion battery
@@ -31,7 +39,7 @@ import pandas as pd
 import yaml
 
 from enpax.base_model import BaseCostModel
-from enpax.outputs import CapexBreakdown, DesignSummary
+from enpax.outputs import CapexBreakdown, OpexBreakdown, DesignSummary
 
 
 DEFAULTS = {
@@ -179,6 +187,24 @@ DEFAULTS = {
     #     Applied to hardware (core_basis) as a fraction of direct hardware costs.
     # -----------------------------------------------------------------------
     "DeveloperProfit": 0.05,        # fraction — developer profit margin
+
+    # -----------------------------------------------------------------------
+    # 12. O&M parameters
+    #    O&M includes SBOS replacement, inverter replacement, ESS replacement,
+    #    land lease, property tax, insurance, and management.
+    #    Replacement prices are based on MSP (not MMP) since replacements occur
+    #    well into the future when current market prices may not apply.
+    # -----------------------------------------------------------------------
+    "PartsLossRate": 0.002,          # fraction/yr — annual parts loss/replacement
+    "InverterLossRate": 0.09,        # fraction/yr — inverter replacement rate
+    "ESSLossRate": 0.025,            # fraction/yr — ESS replacement rate
+    #"LandArea": 872,                 # m2 containers/ha land — containers m2 / land area
+    "LandArea": 2000,                 # m2 containers/ha land — containers m2 / land area
+    "PropertyTaxRate": 0.002,        # fraction/yr of land value
+    "InsuranceRate": 0.0025,         # fraction/yr of total capex
+    "Cost_Land_Lease": 1800,       # $/ha-yr — land lease rate
+    #"Cost_Land_Lease": 180000,       # $/ha-yr — land lease rate
+    "Cost_OM_Management": 180_000,   # $/yr — fixed O&M management cost
 }
 
 
@@ -217,7 +243,7 @@ class BESS2025CostModel(BaseCostModel):
         # Pre-computed factors used across multiple subsystems
         cfg = self.config
         self.dur_ilr = cfg["BatteryDuration"] * cfg["ESS_ILR"]  # h × kWac/kWdc
-        self.area_per_mwh = cfg["ESSInstallationArea"] / cfg["ESSContainer"] / 1000  # m2/kWh-cap
+        self.area_per_kwh = cfg["ESSInstallationArea"] / cfg["ESSContainer"] / 1000  # m2/kWh-cap
 
     @property
     def core_basis(self) -> float:
@@ -305,9 +331,9 @@ class BESS2025CostModel(BaseCostModel):
         Returns costs in $/kWh-cap.
         """
         cfg = self.config
-        prep = cfg["SitePrepStaging"] * self.area_per_mwh
+        prep = cfg["SitePrepStaging"] * self.area_per_kwh
         pads = (cfg["ConcretePads"] * cfg["ConcretePadThickness"]
-                * cfg["ConcreteDensity"] * self.area_per_mwh)
+                * cfg["ConcreteDensity"] * self.area_per_kwh)
         return {"site_prep": prep, "concrete_pads": pads, "total_sbos_per_kwh": prep + pads}
 
     def get_ebos_cost_breakdown(self) -> dict:
@@ -353,7 +379,7 @@ class BESS2025CostModel(BaseCostModel):
         """
         cfg = self.config
         val = (cfg["ESSInstallHourlyLabor"] * cfg["ESSInstallLabor"]
-               * (1 + cfg["LaborBurdenRate"]) * self.area_per_mwh)
+               * (1 + cfg["LaborBurdenRate"]) * self.area_per_kwh)
         return {"installation": val, "total_installation_per_kwh": val}
 
     def get_permitting_cost_breakdown(self) -> dict:
@@ -427,7 +453,7 @@ class BESS2025CostModel(BaseCostModel):
 
         Returns costs in $/kWh-cap.
         """
-        cfg, a_m = self.config, self.area_per_mwh
+        cfg, a_m = self.config, self.area_per_kwh
         ann = cfg["AnnualEPCInstallation"]
         res = {
             "warehousing": cfg["Warehousing"] * a_m,
@@ -437,6 +463,65 @@ class BESS2025CostModel(BaseCostModel):
             "management":  (cfg["ManagementFixed"] / ann) + cfg["OverheadRate"] * self.core_basis,
         }
         res["total_epc_overhead_per_kwh"] = sum(res.values())
+        return res
+
+    def get_om_cost_breakdown(self) -> dict:
+        """
+        Annual O&M cost breakdown.
+ 
+        Covers all recurring costs associated with operating and maintaining the
+        plant: component replacements (BOS, inverters, ESS), land lease, property 
+        tax, insurance, and management.
+ 
+        New ESS cost is zeroed when IncludeESS is False. Replacement costs use
+        MSP rather than MMP, as replacements occur well into the future when
+        current market prices may not apply.
+
+        Replacement costs use MMP rather than MSP.
+ 
+        Returns costs in $/kWh-cap.
+        """
+        cfg = self.config
+        batt_kwh = cfg["BatteryCapacity"] * cfg["BatteryDuration"] * 1000  
+ 
+ 
+        # --- Component replacements ---
+        new_bos = (
+            self.get_sbos_cost_breakdown()["total_sbos_per_kwh"]
+            * cfg["PartsLossRate"]
+        )
+        new_inverters = (
+            self.get_bi_directional_inverter_cost_breakdown()["total_bi_directional_inverter_per_kwh"]
+            * cfg["InverterLossRate"]
+        )
+        new_ess = (
+            (
+                self.get_li_ion_cost_breakdown()["total_li_ion_cost_per_kwh"]
+            )
+            * cfg["ESSLossRate"]
+        )
+ 
+        # --- Site & financial costs ---
+        # Land lease: Cost_Land_Lease [$/ha-yr] × LandArea [ha/kWdc] 
+        land_lease = cfg["Cost_Land_Lease"] / cfg["LandArea"] * self.area_per_kwh
+ 
+        total_capex = self.get_cost_breakdown()["total_project_cost_per_kwh"]
+        property_tax = total_capex * cfg["PropertyTaxRate"]
+        insurance    = total_capex * cfg["InsuranceRate"]
+ 
+        # Management: fixed annual cost spread over system capacity
+        management = cfg["Cost_OM_Management"] / batt_kwh
+ 
+        res = {
+            "new_bos":      new_bos,
+            "new_inverters":new_inverters,
+            "new_ess":      new_ess,
+            "land_lease":   land_lease,
+            "property_tax": property_tax,
+            "insurance":    insurance,
+            "management":   management,
+        }
+        res["total_om_per_kwh_yr"] = sum(res.values())
         return res
 
     # ------------------------------------------------------------------
@@ -504,6 +589,15 @@ class BESS2025CostModel(BaseCostModel):
         total = breakdown.pop("total_project_cost_per_kwh")
         return CapexBreakdown(total=total, unit="$/kWh-cap", line_items=breakdown)
 
+    def run_opex(self) -> OpexBreakdown:
+        """
+        Return an OpexBreakdown with total annual O&M cost in $/kWdc-yr and
+        full line items.
+        """
+        breakdown = self.get_om_cost_breakdown()
+        annual_total = breakdown.pop("total_om_per_kwh_yr")
+        return OpexBreakdown(annual_total=annual_total, unit="$/kWh-yr", line_items=breakdown)
+
     def run_design(self) -> DesignSummary:
         """
         Return key design parameters for this standalone BESS configuration.
@@ -521,7 +615,3 @@ class BESS2025CostModel(BaseCostModel):
             "storage_duration_h":             batt_dur,
             "battery_inverter_capacity_mwac": batt_inv_mwac,
         })
-
-    # run_opex() — planned, not yet implemented
-    # Will surface battery O&M costs including replacement, insurance,
-    # and management normalized to $/kWh-cap/yr.

@@ -40,8 +40,7 @@ Representative system (default configuration):
 
     O&M includes module cleaning, periodic inspection, component replacement, land
     lease, property tax, insurance, and management. Component replacement prices
-    are based on the MSP of those components rather than MMP, as replacements occur
-    well into the future.
+    are based on the MMP of those components rather than MSP.
 """
 
 import warnings
@@ -51,7 +50,7 @@ import pandas as pd
 import yaml
 
 from enpax.base_model import BaseCostModel
-from enpax.outputs import CapexBreakdown, DesignSummary
+from enpax.outputs import CapexBreakdown, OpexBreakdown, DesignSummary
 
 # ---------------------------------------------------------------------------
 # Valid system size range (MWdc)
@@ -261,9 +260,13 @@ DEFAULTS = {
     "InverterLossRate": 0.09,        # fraction/yr — inverter replacement rate
     "ModuleLossRate": 0.001,         # fraction/yr — module replacement rate
     "ESSLossRate": 0.025,            # fraction/yr — ESS replacement rate
-    "LandArea": 3000,                # m2/kWdc — land area per unit capacity
+    "LandArea": 3000,                # m2 modules/ha land — modules / land area
     "PropertyTaxRate": 0.002,        # fraction/yr of land value
     "InsuranceRate": 0.0025,         # fraction/yr of total capex
+    "Cost_Cleaning": 0.54,           # $/m2-yr — module cleaning cost
+    "Cost_Inspection": 0.64,         # $/m2-yr — periodic O&M inspection cost
+    "Cost_Land_Lease": 1800,         # $/ha-yr — land lease rate
+    "Cost_OM_Management": 180_000,   # $/yr — fixed O&M management cost
 }
 
 
@@ -653,14 +656,85 @@ class SolarBESS2024Q1CostModel(BaseCostModel):
         res["total_other_per_kwdc"] = sum(res.values())
         return res
 
+    def get_om_cost_breakdown(self) -> dict:
+        """
+        Annual O&M cost breakdown.
+ 
+        Covers all recurring costs associated with operating and maintaining the
+        plant: cleaning, inspection, component replacements (BOS, modules,
+        inverters, ESS), land lease, property tax, insurance, and management.
+ 
+        New ESS cost is zeroed when IncludeESS is False. Replacement costs use
+        MMP rather than MSP.
+ 
+        Returns costs in $/kWdc-yr.
+        """
+        cfg = self.config
+        inv_eff = 1 / cfg["ModuleEfficiency"]  # m2/kWdc
+        ess_mult = int(cfg["IncludeESS"])
+        ilr = cfg["ILR"]
+ 
+        # --- Routine maintenance ---
+        cleaning   = cfg["Cost_Cleaning"] * inv_eff
+        inspection = cfg["Cost_Inspection"] * inv_eff
+ 
+        # --- Component replacements ---
+        new_bos = (
+            self.get_sbos_cost_breakdown()["total_sbos_per_kwdc"]
+            * cfg["PartsLossRate"]
+        )
+        new_modules = (
+            self.get_pv_module_cost_breakdown()["total_pv_module_per_kwdc"]
+            * cfg["ModuleLossRate"]
+        )
+        new_inverters = (
+            self.get_three_phase_inverter_cost_breakdown()["total_three_phase_inverter_per_kwdc"]
+            * cfg["InverterLossRate"]
+        )
+        new_ess = (
+            (
+                self.get_li_ion_cost_breakdown()["total_li_ion_cost_per_kwdc"]
+                + self.get_bi_directional_inverter_cost_breakdown()["total_bi_directional_inverter_per_kwdc"]
+            )
+            * ess_mult
+            * cfg["ESSLossRate"]
+        )
+ 
+        # --- Site & financial costs ---
+        # Land lease: Cost_Land_Lease [$/ha-yr] / LandArea [m2 modules / ha land] x m2/kWdc
+        land_lease = cfg["Cost_Land_Lease"] / cfg["LandArea"] * inv_eff
+ 
+        total_capex = self.get_cost_breakdown()["total_project_cost_per_kwdc"]
+        property_tax = total_capex * cfg["PropertyTaxRate"]
+        insurance    = total_capex * cfg["InsuranceRate"]
+ 
+        # Management: fixed annual cost spread over system capacity
+        management = cfg["Cost_OM_Management"] / cfg["SystemSize"]
+ 
+        res = {
+            "cleaning":     cleaning,
+            "inspection":   inspection,
+            "new_bos":      new_bos,
+            "new_modules":  new_modules,
+            "new_inverters":new_inverters,
+            "new_ess":      new_ess,
+            "land_lease":   land_lease,
+            "property_tax": property_tax,
+            "insurance":    insurance,
+            "management":   management,
+        }
+        res["total_om_per_kwdc_yr"] = sum(res.values())
+        return res   
+        
+    
     # ------------------------------------------------------------------
     # Dynamic attribute resolution
-    # Allows calling calculate_<subsystem>_per_kwh() to get the scalar
+    # Allows calling calculate_<subsystem>_per_kwdc() to get the scalar
     # total for any subsystem without writing explicit wrapper methods.
     # ------------------------------------------------------------------
 
     def __getattr__(self, name):
-        if name.startswith("calculate_") and name.endswith("_per_kwh"):
+        if name.startswith("calculate_") and name.endswith("_per_kwdc"):
             target = "get_" + name[10:-8] + "_breakdown"
             if hasattr(self, target):
                 breakdown = getattr(self, target)()
@@ -680,7 +754,7 @@ class SolarBESS2024Q1CostModel(BaseCostModel):
         Returns
         -------
         dict
-            Keys are subsystem names plus "total_project_cost_per_kwh".
+            Keys are subsystem names plus "total_project_cost_per_kwdc".
             Values are in $/kWdc.
         """
         subsystems = {
@@ -703,8 +777,10 @@ class SolarBESS2024Q1CostModel(BaseCostModel):
                 {"total": val, "components": {k: v for k, v in sub.items() if not k.startswith("total_")}}
                 if higher_resolution else val
             )
-        output["total_project_cost_per_kwh"] = total
+        output["total_project_cost_per_kwdc"] = total
         return output
+
+    
 
     # ------------------------------------------------------------------
     # BaseCostModel interface
@@ -713,8 +789,17 @@ class SolarBESS2024Q1CostModel(BaseCostModel):
     def run_capex(self) -> CapexBreakdown:
         """Return a CapexBreakdown with total cost in $/kWdc and full line items."""
         breakdown = self.get_cost_breakdown(higher_resolution=True)
-        total = breakdown.pop("total_project_cost_per_kwh")
+        total = breakdown.pop("total_project_cost_per_kwdc")
         return CapexBreakdown(total=total, unit="$/kWdc", line_items=breakdown)
+
+    def run_opex(self) -> OpexBreakdown:
+        """
+        Return an OpexBreakdown with total annual O&M cost in $/kWdc-yr and
+        full line items.
+        """
+        breakdown = self.get_om_cost_breakdown()
+        annual_total = breakdown.pop("total_om_per_kwdc_yr")
+        return OpexBreakdown(annual_total=annual_total, unit="$/kWdc-yr", line_items=breakdown)
 
     def run_design(self) -> DesignSummary:
         """
@@ -744,8 +829,4 @@ class SolarBESS2024Q1CostModel(BaseCostModel):
 
         return DesignSummary(line_items=line_items)
 
-    # run_opex() — planned, not yet implemented
-    # Will surface O&M parameters already present in DEFAULTS:
-    #   parts_replacement, inverter_replacement, module_replacement,
-    #   ess_replacement, land_property_tax, insurance.
-    # Replacement costs use MSP rather than MMP.
+    
