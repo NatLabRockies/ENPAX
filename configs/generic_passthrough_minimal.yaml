@@ -1,0 +1,13 @@
+project_name: "Wind Placeholder (Passthrough)"
+
+# Minimal usage: just a total CAPEX and OPEX, no line items.
+# Use this when you have a benchmark cost figure but no component breakdown.
+
+technologies:
+  - name: wind_turbine_placeholder
+    type: generic_passthrough
+    params:
+      capex_total: 1450        # $/kW
+      capex_unit: "$/kW"
+      opex_annual_total: 43    # $/kW-yr
+      opex_unit: "$/kW-yr"
