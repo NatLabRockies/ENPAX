@@ -7,5 +7,5 @@ technologies:
     params:
       BatteryCapacity: 60
       BatteryDuration: 4
-      InterconnectFixed: 0   # Fixed $
-      Interconnect: 0     
+      InterconnectFixed: 16_000_000   # Fixed $
+      Interconnect: 0  # variable $/kWac     

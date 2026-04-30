@@ -1,0 +1,29 @@
+project_name: "Solar + Geothermal Hybrid (Modeled + Passthrough)"
+
+# Mixed project: one fully modeled technology alongside one passthrough.
+# The runner treats both identically — each contributes a TechResult to
+# the SystemResult, so summary(), capex_by_tech(), etc. work as normal.
+
+technologies:
+  - name: solar_plus_storage
+    type: solar_bess_2024Q1
+    params:
+      SystemSize: 100000         # kWdc
+      ILR: 1.32
+      IncludeESS: false
+
+  - name: geothermal_binary
+    type: generic_passthrough
+    params:
+      capex_total: 4200          # $/kW
+      capex_unit: "$/kW"
+      capex_line_items:
+        drilling:      1800
+        power_block:    950
+        bop:            800
+        epc_overhead:   650
+      opex_annual_total: 110     # $/kW-yr
+      opex_unit: "$/kW-yr"
+      design:
+        capacity_mw:       50
+        capacity_factor:   0.92

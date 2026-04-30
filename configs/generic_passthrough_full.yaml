@@ -1,0 +1,31 @@
+project_name: "Geothermal Binary (Passthrough)"
+
+# Full usage: CAPEX and OPEX with component line items and design characteristics.
+# Use this when you have a detailed cost breakdown from a study or third-party
+# quote but no bottom-up model.
+
+technologies:
+  - name: geothermal_binary
+    type: generic_passthrough
+    params:
+      capex_total: 4200          # $/kW — total installed cost
+      capex_unit: "$/kW"
+      capex_line_items:
+        drilling:      1800      # $/kW
+        power_block:    950      # $/kW
+        bop:            800      # $/kW
+        epc_overhead:   650      # $/kW
+
+      opex_annual_total: 110     # $/kW-yr
+      opex_unit: "$/kW-yr"
+      opex_line_items:
+        labor:          40       # $/kW-yr
+        maintenance:    35       # $/kW-yr
+        land_lease:     20       # $/kW-yr
+        insurance:      15       # $/kW-yr
+
+      design:
+        capacity_mw:          50
+        capacity_factor:      0.92
+        plant_lifetime_yr:    30
+        fluid_type:           "brine"
