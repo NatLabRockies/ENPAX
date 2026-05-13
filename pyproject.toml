@@ -49,7 +49,7 @@ Homepage = "https://github.com/NatLabRockies/ENPAX"
 # Documentation = "https://natlabrockies.github.io/ENPAX/"
 Repository = "https://github.com/NatLabRockies/ENPAX"
 Issues = "https://github.com/NatLabRockies/ENPAX/issues"
-# Changelog = "https://github.com/NatLabRockies/ENPAX/blob/main/CHANGELOG.md"
+Changelog = "https://github.com/NatLabRockies/ENPAX/blob/main/CHANGELOG.md"
 
 [build-system]
 requires = ["setuptools>=61", "wheel"]
