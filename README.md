@@ -110,9 +110,9 @@ Contributions are welcome. Please open an issue or submit a pull request against
  
 ## Authors
  
-- [Daniel Mulas Hernando](daniel.mulashernando@nlr.gov) — National Laboratory of the Rockies
-- [Kaitlin Brunik](kaitlin.brunik@nlr.gov) — National Laboratory of the Rockies
-- [Elenya Grant](elenya.grant@nlr.gov) — National Laboratory of the Rockies
+- [Daniel Mulas Hernando](mailto:daniel.mulashernando@nlr.gov) — National Laboratory of the Rockies
+- [Kaitlin Brunik](mailto:kaitlin.brunik@nlr.gov) — National Laboratory of the Rockies
+- [Elenya Grant](mailto:elenya.grant@nlr.gov) — National Laboratory of the Rockies
 ## License
  
 This project is licensed under the BSD 3-Clause License. See [LICENSE](LICENSE) for details.
