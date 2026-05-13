@@ -1,10 +1,10 @@
 # ENPAX
  
-[![PyPI version](https://badge.fury.io/py/enpax.svg)](https://badge.fury.io/py/enpax)
+[![PyPI version](https://img.shields.io/pypi/v/enpax.svg)](https://pypi.org/project/enpax/)
 ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/enpax)
 [![License](https://img.shields.io/badge/License-BSD%203--Clause-blue.svg)](https://opensource.org/licenses/BSD-3-Clause)
  
-ENPAX (**EN**ergy **P**latform — **A**utomated e**X**penditures) is an open-source Python library that provides modular, bottom-up capital and operating expenditure (CAPEX/OPEX) models for energy technologies. Cost estimates are derived using system design, characteristics, site specific details, power system considerations and infrastructure assumptions.
+ENPAX (**EN**ergy **P**latform — **A**utomated e**X**penditures) is an open-source Python library that provides modular, bottom-up capital and operating expenditure (CAPEX/OPEX) models for energy technologies. Cost estimates are derived using system design characteristics, site specific details, power system considerations and infrastructure assumptions.
  
 ## Software Requirements
  
