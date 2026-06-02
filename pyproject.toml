@@ -1,21 +1,63 @@
 [project]
 name = "enpax"
-version = "0.1.0"
+version = "0.1.1"
 description = "ENergy Platform — Automated eXpenditures"
+readme = "README.md"
 requires-python = ">=3.10"
-
+license = { text = "BSD-3-Clause" }
+authors = [
+    { name = "Daniel Mulas Hernando", email = "daniel.mulashernando@nlr.gov" }, 
+    { name = "Kaitlin Brunik", email = "kaitlin.brunik@nlr.gov" },
+    { name = "Elenya Grant", email = "elenya.grant@nlr.gov" }
+]
+keywords = ["energy", "cost modeling", "techno-economic analysis", "solar", "BESS", "hybrid energy systems"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: BSD License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering",
+]
+ 
 dependencies = [
     "numpy",
     "pandas",
-    "jupyterlab"
+    "pyyaml",
 ]
+ 
+[project.optional-dependencies]
+develop = [
+    "pytest",
+    "pytest-cov",
+]
+examples = [
+    "jupyterlab",
+    "ipykernel",
+]
+all = [
+    "pytest",
+    "pytest-cov",
+    "jupyterlab",
+    "ipykernel",
+]
+ 
+[project.urls]
+Homepage = "https://github.com/NatLabRockies/ENPAX"
+# Documentation = "https://natlabrockies.github.io/ENPAX/"
+Repository = "https://github.com/NatLabRockies/ENPAX"
+Issues = "https://github.com/NatLabRockies/ENPAX/issues"
+Changelog = "https://github.com/NatLabRockies/ENPAX/blob/main/CHANGELOG.md"
 
 [build-system]
-requires = ["setuptools>=61"]
+requires = ["setuptools>=61", "wheel"]
 build-backend = "setuptools.build_meta"
-
+ 
 [tool.setuptools.packages.find]
 include = [
     "enpax",
-    "enpax.model"
+    "enpax.models"
 ]
+ 
