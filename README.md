@@ -90,14 +90,14 @@ The library is structured around a shared abstract base class (BaseCostModel) th
    1. Merge `main` back into `develop` if `develop` was not the base branch.
 7. Tag the new release and push it:
     ```bash
-    git tag -a v0.1.0 -m "message for v0.1.0"
-    git push origin v0.1.0
+    git tag -a v0.1.1 -m "message for v0.1.1"
+    git push origin v0.1.1
     ```
     1. This will trigger the **Deploy to Test PyPI** GitHub Action. If it passes, proceed to step 8. If it fails, continue below.
     2. Delete the tag locally and on remote:
         ```bash
-        git tag -d v0.1.0
-        git push --delete origin v0.1.0
+        git tag -d v0.1.1
+        git push --delete origin v0.1.1
         ```
     3. Create a new branch off `main`, fix the build issue, and return to step 5.
 8. Create a new release at <https://github.com/NatLabRockies/ENPAX/releases>, ensuring that:
