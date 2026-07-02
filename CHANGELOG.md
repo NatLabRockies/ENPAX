@@ -11,3 +11,4 @@
 - Added README, CHANGELOG, LICENSE
 - Registered on PyPI
 - Added PyPI publishing workflows
+- Added DISCLAIMER

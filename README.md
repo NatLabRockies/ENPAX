@@ -116,3 +116,6 @@ Contributions are welcome. Please open an issue or submit a pull request against
 ## License
  
 This project is licensed under the BSD 3-Clause License. See [LICENSE](LICENSE) for details.
+## NLR Software Record
+ 
+This project's NLR Software Record is [SWR-26-053](https://iamp.nrel.gov/swr/3136)
