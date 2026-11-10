@@ -792,7 +792,7 @@ class SolarBESS2025Q1CostModel(BaseCostModel):
 
     def __getattr__(self, name):
         if name.startswith("calculate_") and name.endswith("_per_kwdc"):
-            target = "get_" + name[10:-8] + "_breakdown"
+            target = "get_" + name[10:-len("_per_kwdc")] + "_breakdown"
             if hasattr(self, target):
                 breakdown = getattr(self, target)()
                 return lambda: breakdown[next(k for k in breakdown if k.startswith("total_"))]
