@@ -1,6 +1,8 @@
 """
 solar_bess.py — Modeled Market Price Utility-Scale PV System Cost Model (PVSCM)
 
+Dollar year: 2023 USD (CPI-U = 304.7). All costs and outputs are in 2023 dollars.
+
 Based on:
     Modeled Market Price Utility-Scale PV System Cost Model (PVSCM), 2024 Q1
     U.S. Department of Energy (DOE)
