@@ -75,7 +75,8 @@ The library is structured around a shared abstract base class (BaseCostModel) th
 
 | Model | Description |
 |-------|-------------|
-| `solar_bess_2024Q1` | Solar PV + BESS hybrid CAPEX/OPEX model |
+| `solar_bess_2024Q1` | Solar PV + BESS hybrid CAPEX/OPEX model (PVSCM 2024 Q1, 2023 USD) |
+| `solar_bess_2025Q1` | Solar PV + BESS hybrid CAPEX/OPEX model (PVSCM 2025 Q1, 2024 USD) |
 | `bess_2025` | Standalone battery energy storage CAPEX/OPEX model |
 | `generic_passthrough` | Generic passthrough model for custom CAPEX/OPEX inputs |
  
