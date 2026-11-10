@@ -1,0 +1,9 @@
+project_name: "Solar + BESS (PVSCM 2025 Q1)"
+
+technologies:
+  - name: solar_plus_storage
+    type: solar_bess_2025Q1
+    params:
+      SystemSize: 100000       # kWdc
+      ILR: 1.34
+      IncludeESS: True

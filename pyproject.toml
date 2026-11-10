@@ -36,12 +36,16 @@ develop = [
 examples = [
     "jupyterlab",
     "ipykernel",
+    "matplotlib",
+    "jinja2",
 ]
 all = [
     "pytest",
     "pytest-cov",
     "jupyterlab",
     "ipykernel",
+    "matplotlib",
+    "jinja2",
 ]
  
 [project.urls]
